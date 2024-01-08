@@ -7,8 +7,9 @@ socket.onopen = function () {
 };
 
 socket.onmessage = function (event) {
-  const data = event.data;
-  handleReceivedData(data);
+    const data = event.data;
+    const processedData = handleReceivedData(data);
+    postMessage(processedData);
 };
 
 socket.onclose = function () {
@@ -23,4 +24,5 @@ socket.onerror = function (error) {
 function handleReceivedData(data) {
   // 在这里添加你的数据处理逻辑
   console.log("处理数据:", data);
+  return data;
 }
