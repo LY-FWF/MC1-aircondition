@@ -8,6 +8,8 @@ const worker = new Worker(new URL("./worker.js", import.meta.url), {
   type: "module",
 });
 
+worker.postMessage(import.meta.env.VITE_WEBSOCKET_URL);
+
 const app = createApp(App);
 
 app.provide("worker", worker);
