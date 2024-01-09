@@ -28,14 +28,14 @@ function connectWebSocket() {
   socket.onclose = function () {
     console.log("WebSocket 连接已关闭");
     // 断开后重新连接
-    setTimeout(connectWebSocket, 2000);
+    setTimeout(connectWebSocket, 1000);
   };
 
   // 处理 WebSocket 错误事件
   socket.onerror = function (error) {
     console.error("WebSocket 错误:", error);
     // 出错后重新连接
-    setTimeout(connectWebSocket, 2000);
+    setTimeout(connectWebSocket, 1000);
   };
 }
 
@@ -312,18 +312,9 @@ function handleReceivedData(dataAll) {
         airconditioner1_state["symple"] = symple;
         airconditioner1_state["comid"] = comid;
         airconditioner1_state["airconditioner1"] = airconditioner1;
-        // console.log(airconditioner1_state['airconditioner1']);
-        // console.log(socket, socket.clients);
 
         let str = JSON.stringify(airconditioner1_state);
         return str;
-        // socket.clients(client => {
-        //   if (client.readyState === WebSocket.OPEN) {
-        //     let str = JSON.stringify(airconditioner1_state);
-        //     client.send(str);
-        //     console.log("socket启用了,已发送空调1数据")
-        //   }
-        // });
       }
 
       if (comid == 1031) {
@@ -480,318 +471,8 @@ function handleReceivedData(dataAll) {
         airconditioner2_state["airconditioner2"] = airconditioner2;
         let str = JSON.stringify(airconditioner2_state);
         return str;
-        // socket.clients.forEach(client => {
-        //   if (client.readyState === WebSocket.OPEN) {
-        //     let str = JSON.stringify(airconditioner2_state);
-        //     client.send(str);
-        //     console.log("socket启用了,已发送空调2数据")
-        //   }
-        // });
       }
       break;
-  }
-  // var buf = msg.buffer;
-  // var unit8 = new Uint8Array(buf);
-  // var arr = Array.from(unit8);
-  // var flag_bit = arr.slice(5, 6);//截取标志位
-  // // console.log(arr)
-  // if (flag_bit == 7) {
-  //   var comid = Number(arr.slice(25, 26) * 256) + Number(arr.slice(26, 27))
-  //   console.log("comid:" + comid)
-  //   if (comid == 1030) {
-  //     airconditioner1_faultsum.comid = comid;
-  //     var arr1 = arr.slice(48, 55)//截取空调故障位
-  //     var lastmsg1 = ['00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000'];
-  //     arr1.forEach((item, index) => {//item是元素值，index是索引
-  //       let ele2String = item.toString(2);
-  //       let ele = fillZero(ele2String);
-  //       compareMsg(ele, index, lastmsg1, airconditioner1_faultsum)//compareMsg的index是foreach的index
-  //     });
-
-  //     ws3.clients.forEach(client => {
-  //       if (client.readyState === WebSocket.OPEN) {
-  //         let str = JSON.stringify(airconditioner1_faultsum);
-  //         client.send(str);
-  //         console.log("ws3启用了")
-  //       }
-  //     })
-  //   }
-  //   if (comid == 1031) {
-  //     airconditioner2_faultsum.comid = comid;
-  //     var arr2 = arr.slice(48, 55)//截取空调故障位
-  //     var lastmsg2 = ['00000000', '00000000', '00000000', '00000000', '00000000', '00000000', '00000000'];
-  //     arr2.forEach((item, index) => {//item是元素值，index是索引
-  //       let ele2String = item.toString(2);
-  //       let ele = fillZero(ele2String);
-  //       compareMsg(ele, index, lastmsg2, airconditioner2_faultsum)//compareMsg的index是foreach的index
-  //     });
-  //     ws3.clients.forEach(client => {
-  //       console.log("送风2")
-  //       if (client.readyState === WebSocket.OPEN) {
-  //         let str = JSON.stringify(airconditioner2_faultsum);
-  //         client.send(str);
-  //         console.log("ws3启用了")
-  //       }
-  //     })
-  //   }
-  // }
-
-  var airconditioner1_faultsum = {
-    comid: 0,
-    passengercompartment_heat_faultII_sum: 0, //客室加热故障II-发生总数
-    passengercompartment_cold_faultII_sum: 0, //客室制冷故障II-发生总数
-    passengercompartment_ventilation_faultI_sum: 0, //客室通风故障I-发生总数
-    ventilator1_faultII_sum: 0, //通风机1故障II-发生总数
-    ventilator2_faultII_sum: 0, //通风机2故障II-发生总数
-    exhaustfan_overload_faultII_sum: 0, //废排风机过载故障II-发生总数
-    ventilator_overload_faultI_sum: 0, //通风机过载故障I-发生总数
-    exhaustfan_faultII_sum: 0, //废排风机故障II-发生总数
-    electricheat2_faultII_sum: 0, //电加热2故障II-发生总数
-    electricheat1_faultII_sum: 0, //电加热1故障II-发生总数
-    compressor_faultII_sum: 0, //压缩机故障II-发生总数
-    ventilator_faultI_sum: 0, //通风机故障I-发生总数
-    condensingfan_faultII_sum: 0, //冷凝风机故障II-发生总数
-    system_highvoltagesensor_faultIII_sum: 0, //系统高压传感器故障III-发生总数
-    system_lowvoltagesensor_faultIII_sum: 0, //系统低压传感器故障III-发生总数
-    compressor_lowvoltage_faultIII_sum: 0, //压缩机低压故障III-发生总数
-    compressor_highvoltage_faultIII_sum: 0, //压缩机高压故障III-发生总数
-    electricheat2_overcurrent_faultII_sum: 0, //电加热2过流故障II-发生总数
-    electricheat1_overcurrent_faultII_sum: 0, //电加热1过流故障II-发生总数
-    compressor_overcurrent_faultII_sum: 0, //压缩机过流故障II-发生总数
-    condensingfan_overload_faultII_sum: 0, //冷凝风机过载故障II-发生总数
-    freshair_valve_faultII_sum: 0, //新风风阀故障II-发生总数
-    airsupply_sensor_faultIII_sum: 0, //送风传感器故障III-发生总数
-    freshair_sensor_faultIII_sum: 0, //新风传感器故障III-发生总数
-    passengercompartment_returnairsensor2_faultIII_sum: 0, //客室回风传感器2故障III-发生总数
-    passengercompartment_returnairsensor1_faultIII_sum: 0, //客室回风传感器1故障III-发生总数
-    fanpowerbox_fanunit_faultIII_sum: 0, //风机电源箱风扇单元故障III-发生总数
-    compressorpowerbox_fanunit_faultIII_sum: 0, //压缩机电源箱风扇单元故障III-发生总数
-    pressurewave_controller_faultI_sum: 0, //压力波控制器故障（预留）I-发生总数
-    compressor_frequencyconverter_faultII_sum: 0, //压缩机变频器故障II-发生总数
-    fan_frequencyconverter_faultI_sum: 0, //风机变频器故障I-发生总数
-    exhaustair_pressurewavevalve_faultI_sum: 0, //废排压力波阀故障I-发生总数
-    freshair_pressurewavevalve_faultI_sum: 0, //新风压力波阀故障I-发生总数
-  };
-  var airconditioner2_faultsum = {
-    comid: 0,
-    passengercompartment_heat_faultII_sum: 0, //客室加热故障II-发生总数
-    passengercompartment_cold_faultII_sum: 0, //客室制冷故障II-发生总数
-    passengercompartment_ventilation_faultI_sum: 0, //客室通风故障I-发生总数
-    ventilator1_faultII_sum: 0, //通风机1故障II-发生总数
-    ventilator2_faultII_sum: 0, //通风机2故障II-发生总数
-    exhaustfan_overload_faultII_sum: 0, //废排风机过载故障II-发生总数
-    ventilator_overload_faultI_sum: 0, //通风机过载故障I-发生总数
-    exhaustfan_faultII_sum: 0, //废排风机故障II-发生总数
-    electricheat2_faultII_sum: 0, //电加热2故障II-发生总数
-    electricheat1_faultII_sum: 0, //电加热1故障II-发生总数
-    compressor_faultII_sum: 0, //压缩机故障II-发生总数
-    ventilator_faultI_sum: 0, //通风机故障I-发生总数
-    condensingfan_faultII_sum: 0, //冷凝风机故障II-发生总数
-    system_highvoltagesensor_faultIII_sum: 0, //系统高压传感器故障III-发生总数
-    system_lowvoltagesensor_faultIII_sum: 0, //系统低压传感器故障III-发生总数
-    compressor_lowvoltage_faultIII_sum: 0, //压缩机低压故障III-发生总数
-    compressor_highvoltage_faultIII_sum: 0, //压缩机高压故障III-发生总数
-    electricheat2_overcurrent_faultII_sum: 0, //电加热2过流故障II-发生总数
-    electricheat1_overcurrent_faultII_sum: 0, //电加热1过流故障II-发生总数
-    compressor_overcurrent_faultII_sum: 0, //压缩机过流故障II-发生总数
-    condensingfan_overload_faultII_sum: 0, //冷凝风机过载故障II-发生总数
-    freshair_valve_faultII_sum: 0, //新风风阀故障II-发生总数
-    airsupply_sensor_faultIII_sum: 0, //送风传感器故障III-发生总数
-    freshair_sensor_faultIII_sum: 0, //新风传感器故障III-发生总数
-    passengercompartment_returnairsensor2_faultIII_sum: 0, //客室回风传感器2故障III-发生总数
-    passengercompartment_returnairsensor1_faultIII_sum: 0, //客室回风传感器1故障III-发生总数
-    fanpowerbox_fanunit_faultIII_sum: 0, //风机电源箱风扇单元故障III-发生总数
-    compressorpowerbox_fanunit_faultIII_sum: 0, //压缩机电源箱风扇单元故障III-发生总数
-    pressurewave_controller_faultI_sum: 0, //压力波控制器故障（预留）I-发生总数
-    compressor_frequencyconverter_faultII_sum: 0, //压缩机变频器故障II-发生总数
-    fan_frequencyconverter_faultI_sum: 0, //风机变频器故障I-发生总数
-    exhaustair_pressurewavevalve_faultI_sum: 0, //废排压力波阀故障I-发生总数
-    freshair_pressurewavevalve_faultI_sum: 0, //新风压力波阀故障I-发生总数
-  };
-
-  function compareMsg(ele, index, lastmsg, airconditioner_faultsum) {
-    let lastStr = lastmsg[index]; //取出00000000，与17（00010001）作对比
-    if (lastStr != ele) {
-      for (let i = 0; i < 8; i++) {
-        if (lastStr[i] != ele[i]) {
-          if (ele[i] == 1) {
-            //就是故障从0到1
-            airconditionerFaultSumCount(index, i, airconditioner_faultsum);
-            //console.log("airconditioner_faultsum.passengercompartment_heat_faultII_sum:"+airconditioner_faultsum.passengercompartment_heat_faultII_sum)
-          }
-        }
-      }
-      lastmsg[index] = ele;
-    }
-  }
-
-  function airconditionerFaultSumCount(index, i, airconditioner_faultsum) {
-    switch (index) {
-      case 0:
-        switch (i) {
-          case 5:
-            airconditioner_faultsum.passengercompartment_heat_faultII_sum =
-              airconditioner_faultsum.passengercompartment_heat_faultII_sum + 1;
-
-            break;
-          case 6:
-            airconditioner_faultsum.passengercompartment_cold_faultII_sum =
-              airconditioner_faultsum.passengercompartment_cold_faultII_sum + 1;
-            break;
-          case 7:
-            airconditioner_faultsum.passengercompartment_ventilation_faultI_sum =
-              airconditioner_faultsum.passengercompartment_ventilation_faultI_sum +
-              1;
-            break;
-        }
-        break;
-      case 2:
-        switch (i) {
-          case 6:
-            airconditioner_faultsum.ventilator1_faultII_sum =
-              airconditioner_faultsum.ventilator1_faultII_sum + 1;
-            break;
-          case 7:
-            airconditioner_faultsum.ventilator2_faultII_sum =
-              airconditioner_faultsum.ventilator2_faultII_sum + 1;
-            break;
-        }
-        break;
-      case 3:
-        switch (i) {
-          case 0:
-            airconditioner_faultsum.exhaustfan_overload_faultII_sum =
-              airconditioner_faultsum.exhaustfan_overload_faultII_sum + 1;
-            break;
-          case 1:
-            airconditioner_faultsum.ventilator_overload_faultI_sum =
-              airconditioner_faultsum.ventilator_overload_faultI_sum + 1;
-            break;
-          case 2:
-            airconditioner_faultsum.exhaustfan_faultII_sum =
-              airconditioner_faultsum.exhaustfan_faultII_sum + 1;
-            break;
-          case 3:
-            airconditioner_faultsum.electricheat2_faultII_sum =
-              airconditioner_faultsum.electricheat2_faultII_sum + 1;
-            break;
-          case 4:
-            airconditioner_faultsum.electricheat1_faultII_sum =
-              airconditioner_faultsum.electricheat1_faultII_sum + 1;
-            break;
-          case 5:
-            airconditioner_faultsum.compressor_faultII_sum =
-              airconditioner_faultsum.compressor_faultII_sum + 1;
-            break;
-          case 6:
-            airconditioner_faultsum.ventilator_faultI_sum =
-              airconditioner_faultsum.ventilator_faultI_sum + 1;
-            break;
-          case 7:
-            airconditioner_faultsum.condensingfan_faultII_sum =
-              airconditioner_faultsum.condensingfan_faultII_sum + 1;
-            break;
-        }
-        break;
-      case 4:
-        switch (i) {
-          case 0:
-            airconditioner_faultsum.system_highvoltagesensor_faultIII_sum =
-              airconditioner_faultsum.system_highvoltagesensor_faultIII_sum + 1;
-            break;
-          case 1:
-            airconditioner_faultsum.system_lowvoltagesensor_faultIII_sum =
-              airconditioner_faultsum.system_lowvoltagesensor_faultIII_sum + 1;
-            break;
-          case 2:
-            airconditioner_faultsum.compressor_lowvoltage_faultIII_sum =
-              airconditioner_faultsum.compressor_lowvoltage_faultIII_sum + 1;
-            break;
-          case 3:
-            airconditioner_faultsum.compressor_highvoltage_faultIII_sum =
-              airconditioner_faultsum.compressor_highvoltage_faultIII_sum + 1;
-            break;
-          case 4:
-            airconditioner_faultsum.electricheat2_overcurrent_faultII_sum =
-              airconditioner_faultsum.electricheat2_overcurrent_faultII_sum + 1;
-            break;
-          case 5:
-            airconditioner_faultsum.electricheat1_overcurrent_faultII_sum =
-              airconditioner_faultsum.electricheat1_overcurrent_faultII_sum + 1;
-            break;
-          case 6:
-            airconditioner_faultsum.compressor_overcurrent_faultII_sum =
-              airconditioner_faultsum.compressor_overcurrent_faultII_sum + 1;
-            break;
-          case 7:
-            airconditioner_faultsum.condensingfan_overload_faultII_sum =
-              airconditioner_faultsum.condensingfan_overload_faultII_sum + 1;
-            break;
-        }
-        break;
-      case 5:
-        switch (i) {
-          case 3:
-            airconditioner_faultsum.freshair_valve_faultII_sum =
-              airconditioner_faultsum.freshair_valve_faultII_sum + 1;
-            break;
-          case 4:
-            airconditioner_faultsum.airsupply_sensor_faultIII_sum =
-              airconditioner_faultsum.airsupply_sensor_faultIII_sum + 1;
-            break;
-          case 5:
-            airconditioner_faultsum.freshair_sensor_faultIII_sum =
-              airconditioner_faultsum.freshair_sensor_faultIII_sum + 1;
-            break;
-          case 6:
-            airconditioner_faultsum.passengercompartment_returnairsensor2_faultIII_sum =
-              airconditioner_faultsum.passengercompartment_returnairsensor2_faultIII_sum +
-              1;
-            break;
-          case 7:
-            airconditioner_faultsum.passengercompartment_returnairsensor1_faultIII_sum =
-              airconditioner_faultsum.passengercompartment_returnairsensor1_faultIII_sum +
-              1;
-            break;
-        }
-        break;
-      case 6:
-        switch (i) {
-          case 1:
-            airconditioner_faultsum.fanpowerbox_fanunit_faultIII_sum =
-              airconditioner_faultsum.fanpowerbox_fanunit_faultIII_sum + 1;
-            break;
-          case 2:
-            airconditioner_faultsum.compressorpowerbox_fanunit_faultIII_sum =
-              airconditioner_faultsum.compressorpowerbox_fanunit_faultIII_sum +
-              1;
-            break;
-          case 3:
-            airconditioner_faultsum.pressurewave_controller_faultI_sum =
-              airconditioner_faultsum.pressurewave_controller_faultI_sum + 1;
-            break;
-          case 4:
-            airconditioner_faultsum.compressor_frequencyconverter_faultII_sum =
-              airconditioner_faultsum.compressor_frequencyconverter_faultII_sum +
-              1;
-            break;
-          case 5:
-            airconditioner_faultsum.fan_frequencyconverter_faultI_sum =
-              airconditioner_faultsum.fan_frequencyconverter_faultI_sum + 1;
-            break;
-          case 6:
-            airconditioner_faultsum.exhaustair_pressurewavevalve_faultI_sum =
-              airconditioner_faultsum.exhaustair_pressurewavevalve_faultI_sum +
-              1;
-            break;
-          case 7:
-            airconditioner_faultsum.freshair_pressurewavevalve_faultI_sum =
-              airconditioner_faultsum.freshair_pressurewavevalve_faultI_sum + 1;
-            break;
-        }
-        break;
-    }
-    return airconditioner_faultsum;
   }
 
   /* * 对二进制字符串进行补0
@@ -828,6 +509,4 @@ function handleReceivedData(dataAll) {
     //遍历二进制字符串内容，输出数组
   }
 
-  // console.log(JSON.stringify(data2));
-  // return data2;
 }
