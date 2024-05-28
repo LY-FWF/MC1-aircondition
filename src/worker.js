@@ -9,6 +9,35 @@ self.onmessage = function (event) {
   connectWebSocket();
 };
 
+async function blobToHexstring(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = function () {
+      if (this.result instanceof ArrayBuffer) {
+        const byteArray = new Uint8Array(this.result);
+        const hexString = Array.from(byteArray).map(byte => byte.toString(16).padStart(2, '0')).join('');
+        resolve(hexString);
+      } else {
+        reject(new Error('Invalid result type'));
+      }
+
+    };
+    reader.onerror = reject
+    reader.readAsArrayBuffer(blob);
+  })
+}
+
+// 使用示例
+async function handleBlobData(blob) {
+  try {
+    const hexString = await blobToHexstring(blob);
+    const processedData = handleReceivedData(hexString);
+    postMessage(processedData);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 // 建立 WebSocket 连接
 function connectWebSocket() {
   socket = new WebSocket(websocketUrl);
@@ -20,8 +49,9 @@ function connectWebSocket() {
 
   // 处理 WebSocket 接收到的消息
   socket.onmessage = function (event) {
-    const processedData = handleReceivedData(event.data);
-    postMessage(processedData);
+    // const processedData = handleReceivedData(event.data);
+    // postMessage(processedData);
+    handleBlobData(event.data);
   };
 
   // 处理 WebSocket 关闭事件
@@ -43,7 +73,25 @@ function connectWebSocket() {
 function handleReceivedData(dataAll) {
   // 在这里添加你的数据处理逻辑
   console.log("处理数据:", dataAll);
-
+  // 解析Blob进制流
+//   const reader = new FileReader();
+  
+// // Blob {size: 121, type: '',data:Blob } 
+//     // 是否返回是二进制流 默认是Blob类型的
+	
+//       let result = null;
+//       if (dataAll instanceof Blob) {
+     
+//         reader.readAsText(dataAll, "UTF-8");
+//         console.log(reader);
+//         reader.onload = (e) => {
+//           result = JSON.parse(reader.result);
+//           // 判断当前是本人 本人的话统一将数据排到右侧
+          
+//           state.msgListSelf.push(result);
+//         };
+//       }
+//  console.log(result,'111');
   var airconditioner1_state = {};
   var airconditioner2_state = {};
 
