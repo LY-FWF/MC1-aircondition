@@ -141,7 +141,7 @@ export default {
             offset: -5, //向左偏移10px
             // min: 0, //最小值
             // max: 30, //最大值
-            name:"空调最高电压",
+            name:"空调最高电压(V)",
             namelocation:"end",
             nameGap:10,
             nameTextStyle:{
@@ -173,7 +173,7 @@ export default {
         series: [
           //系列，数据映射
           {
-            name: "440V-0",
+            // name: "440V-0",
             type: "line", //图表类型，折线图
             label:{
               show:false,
@@ -183,7 +183,7 @@ export default {
             yAxisIndex:0,
             smooth: true, //折线图是否平滑
           },{
-            name: "440V-1",
+            // name: "440V-1",
             type: "line", //图表类型，折线图
             label:{
               show:false,
@@ -200,7 +200,7 @@ export default {
       datasource.data.push([formatDate(),newv.max_temp])
       // datasource1.data.push([formatDate(),newv1.Mret0_speed,newv1.Mret1_speed,])
       // console.log("CCCCCCCCCC")
-      console.log(datasource.data)
+      // console.log(datasource.data)
       state.options.dataZoom[0].start =100-(16/state.options.dataset.source.length)*100
     }
     function changeState(){
@@ -213,7 +213,7 @@ export default {
                 if (timer11) {
                     clearTimeout(timer11)
                     timer11 = null
-                    console.log("清除定时器")
+                    // console.log("清除定时器")
                 }
                 //不然就创建新的定时器
                 timer11 = setTimeout(()=>{

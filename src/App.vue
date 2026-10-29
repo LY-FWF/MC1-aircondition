@@ -1,5 +1,5 @@
 <script>
-import { onMounted, reactive, onUnmounted, ref, inject } from 'vue';//组件导入,复制进去
+import { onMounted, reactive, onUnmounted, ref, inject, computed } from 'vue';//组件导入,复制进去
 import getDate from '../src/js/time'//导入时间函数
 import Speed11 from './components/air11.vue'
 import Speed12 from './components/air12.vue'
@@ -34,7 +34,7 @@ export default {
       for (let key in oldObject) {
         newObject[key] = oldObject[key]
       }
-      console.log(newObject)
+      // console.log(newObject)
     }
     const formatDate = () => {
       var date = new Date()// 时间戳为10位需*1000，时间戳为13位的话不需乘1000
@@ -77,7 +77,71 @@ export default {
         //console.log(x_TimeData)
       }, 1000)
     };
-    onMounted(() => {
+    // ====== 可配置项默认值（运行时可通过 config.json 覆盖）======
+    const DEFAULT_TITLE = '高速磁浮空调状态诊断模块'
+    const DEFAULT_LOGOS = [
+      { src: 'logo.png', width: 124.65, height: 41.43 }
+    ]
+
+    const title = ref(DEFAULT_TITLE)
+    const logos = ref(DEFAULT_LOGOS)
+    const logoGap = ref(24)
+    const titleAlign = ref('center') // 主标题对齐方式：'center' 居中 | 'left' 原位置
+
+    // logo 区域基准参数（与原设计保持一致）
+    const LOGO_START_X = 39.2
+    const LOGO_BASE_Y = 10.45
+    const LOGO_MAX_HEIGHT = 41.43
+    const LOGO_DEFAULT_WIDTH = 124.65
+
+    // 多 logo 一行布局：从左至右依次排列，垂直方向居中对齐
+    const logoItems = computed(() => {
+      let cursorX = LOGO_START_X
+      const list = logos.value
+      return list.map((logo, index) => {
+        const height = Number(logo.height) > 0 ? Number(logo.height) : LOGO_MAX_HEIGHT
+        const width = Number(logo.width) > 0 ? Number(logo.width) : LOGO_DEFAULT_WIDTH
+        const y = LOGO_BASE_Y + (LOGO_MAX_HEIGHT - height) / 2
+        const item = { x: cursorX, y, width, height, src: logo.src }
+        cursorX += width + (index < list.length - 1 ? logoGap.value : 0)
+        return item
+      })
+    })
+
+    // 主标题布局：居中时以画布中线对齐，左对齐时保持原位置
+    const TITLE_LEFT_X = 708.5
+    const titleProps = computed(() => {
+      if (titleAlign.value === 'center') {
+        return { x: 960, anchor: 'middle' } // 1920 / 2
+      }
+      return { x: TITLE_LEFT_X, anchor: 'start' }
+    })
+
+    // 运行时加载外部配置文件（打包后位于 dist/config.json，可直接修改无需重新构建）
+    onMounted(async () => {
+      try {
+        const res = await fetch('./config.json', { cache: 'no-cache' })
+        if (!res.ok) return
+        // 防止 SPA fallback 返回 index.html（非 JSON）导致解析报错
+        const contentType = res.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) return
+        const config = await res.json()
+        if (typeof config.title === 'string' && config.title.trim()) {
+          title.value = config.title
+        }
+        if (Array.isArray(config.logos)) {
+          const valid = config.logos.filter(l => l && typeof l.src === 'string' && l.src.trim())
+          if (valid.length) logos.value = valid
+        }
+        if (typeof config.logoGap === 'number' && config.logoGap >= 0) {
+          logoGap.value = config.logoGap
+        }
+        if (typeof config.titleAlign === 'string' && ['center', 'left'].includes(config.titleAlign)) {
+          titleAlign.value = config.titleAlign
+        }
+      } catch (e) {
+        console.warn('[配置] 加载 config.json 失败，使用默认配置', e)
+      }
 
       currentTime()
       worker.onmessage = (event) => {
@@ -91,31 +155,33 @@ export default {
             if (comid == 1030) {
               var airconditioner1_th1 = data_state.airconditioner1
               replaceObject(x_Airconditioner1, airconditioner1_th1)
-              console.log(x_Airconditioner1)
+              // console.log(x_Airconditioner1)
             }
             if (comid == 1031) {
               var airconditioner2_th1 = data_state.airconditioner2
               replaceObject(x_Airconditioner2, airconditioner2_th1)
             }
 
-            if (x_Temp1.length < 10) {
+            if (x_Temp1.length > 100) {
+              x_Temp1.shift();
               x_Temp1.push([formatDate(), x_Airconditioner1.guestroomtemp, x_Airconditioner1.targettemp, x_Airconditioner1.newtrendtemp])
             } else {
               x_Temp1.splice(0, 1)
               x_Temp1.push([formatDate(), x_Airconditioner1.guestroomtemp, x_Airconditioner1.targettemp, x_Airconditioner1.newtrendtemp])
             }
-            if (x_Airquality.length < 10) {
+            if (x_Airquality.length > 100) {
+              x_Temp1.shift();
               x_Airquality.push([formatDate(), x_Airconditioner1.co2, x_Airconditioner1.pm25, x_Airconditioner1.hcho])
-              console.log(x_Airquality)
+              // console.log(x_Airquality)
             } else {
               x_Airquality.splice(0, 1)
               x_Airquality.push([formatDate(), x_Airconditioner1.co2, x_Airconditioner1.pm25, x_Airconditioner1.hcho])
-              console.log(x_Airquality)
+              // console.log(x_Airquality)
             }
             break;
         }
       };
-    });
+    })
 
     onUnmounted(() => {
       if (getDate) {
@@ -130,7 +196,10 @@ export default {
       x_Base,
       colorSig,
       colorSig2,
-      x_Temp1
+      x_Temp1,
+      title,
+      logoItems,
+      titleProps
     }
   }
 }
@@ -203,25 +272,24 @@ export default {
     </g>
     <!-- 时间模块 -->
     <text fill="#ffffff" font-family="SimHei" font-size="40" font-weight="400" height="56" letter-spacing="1.81818182"
-      width="544">
-      <tspan x="708.5" y="55">高速磁浮空调状态诊断模块</tspan>
+      width="544" :text-anchor="titleProps.anchor">
+      <tspan :x="titleProps.x" y="55">{{ title }}</tspan>
     </text>
     <g>
       <text fill="#ffffff" font-family="SimHei" font-size="22" font-weight="400">
         <tspan x="202" y="36">车号:CF002</tspan>
       </text>
       <text fill="#ffffff" font-family="SimHei" font-size="22">
-        <tspan x="380" y="36">车厢:M1</tspan>
+        <tspan x="380" y="36">车厢:MC2</tspan>
       </text>
       <text fill="#ffffff" font-family="SimHei" font-size="22">
         <tspan x="1648" y="36">{{ x_TimeData.nowTime }}</tspan>
       </text>
     </g>
-    <!-- 中车图标 -->
-    <image height="42" width="124" x="39"
-      xlink:href="data:image/png;base64,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"
-      y="10">
-    </image>
+    <!-- logo 图标（可配置，支持一行多个，默认左上角原位置） -->
+    <image v-for="(logo, index) in logoItems" :key="index"
+      :height="logo.height" :width="logo.width" :x="logo.x" :y="logo.y"
+      :xlink:href="logo.src" />
     <!-- 基本信息1 -->
     <g id="页面-1" fill="none" fill-rule="evenodd" stroke="none" stroke-width="1">
       <g id="高速磁浮空调状态监控模块" transform="translate(0, 0)">
@@ -296,10 +364,12 @@ export default {
               <tspan x="0" y="19">新风阀门</tspan>
             </text>
           </g>
-          <text id="空调1" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16" font-weight="normal">
+          <text id="空调1" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16"
+            font-weight="normal">
             <tspan x="130" y="25">空调1</tspan>
           </text>
-          <text id="名称" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16" font-weight="normal">
+          <text id="名称" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16"
+            font-weight="normal">
             <tspan x="32" y="25">名称</tspan>
           </text>
           <text id="运行模式" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18"
@@ -318,13 +388,16 @@ export default {
               <tspan x="210" y="19">{{ x_Airconditioner2.targettemp }}</tspan>
             </text>
           </g>
-          <text id="手动" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18" font-weight="normal">
+          <text id="手动" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18"
+            font-weight="normal">
             <tspan x="129.5" y="64">{{ x_Airconditioner1.workmode }}</tspan>
           </text>
-          <text id="自动" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18" font-weight="normal">
+          <text id="自动" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18"
+            font-weight="normal">
             <tspan x="219" y="64">{{ x_Airconditioner2.workmode }}</tspan>
           </text>
-          <text id="空调2" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16" font-weight="normal">
+          <text id="空调2" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16"
+            font-weight="normal">
             <tspan x="217" y="25">空调2</tspan>
           </text>
         </g>
@@ -404,10 +477,12 @@ export default {
               <tspan x="0" y="19">压缩机</tspan>
             </text>
           </g>
-          <text id="空调1" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16" font-weight="normal">
+          <text id="空调1" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16"
+            font-weight="normal">
             <tspan x="130" y="25">空调1</tspan>
           </text>
-          <text id="名称" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16" font-weight="normal">
+          <text id="名称" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16"
+            font-weight="normal">
             <tspan x="32" y="25">名称</tspan>
           </text>
           <text id="压力保护" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18"
@@ -426,13 +501,16 @@ export default {
               <tspan x="210" y="19">{{ x_Airconditioner2.condensingfan1 }}</tspan>
             </text>
           </g>
-          <text id="手动" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18" font-weight="normal">
+          <text id="手动" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18"
+            font-weight="normal">
             <tspan x="129.5" y="64">自动</tspan>
           </text>
-          <text id="自动" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18" font-weight="normal">
+          <text id="自动" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="18"
+            font-weight="normal">
             <tspan x="219" y="64">自动</tspan>
           </text>
-          <text id="空调2" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16" font-weight="normal">
+          <text id="空调2" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="16"
+            font-weight="normal">
             <tspan x="217" y="25">空调2</tspan>
           </text>
         </g>
@@ -571,7 +649,8 @@ export default {
           <polygon id="路径备份-5" fill-rule="nonzero"
             points="113.504402 62.2342051 123.9766 68.3711974 113.504402 74.5081897 113.504402 71.1748142 68.2342051 71.1748142 68.2342051 65.5713113 113.504402 65.5713113"
             stroke="#3DDEFF"
-            transform="translate(96.105403, 68.371197) rotate(-270.000000) translate(-96.105403, -68.371197) "></polygon>
+            transform="translate(96.105403, 68.371197) rotate(-270.000000) translate(-96.105403, -68.371197) ">
+          </polygon>
           <polygon id="路径备份-7" fill-rule="nonzero"
             points="513.504402 62.2342051 523.9766 68.3711974 513.504402 74.5081897 513.504402 71.1748142 468.234205 71.1748142 468.234205 65.5713113 513.504402 65.5713113"
             stroke="#3DDEFF"
@@ -675,7 +754,8 @@ export default {
             fill="#6DD400" fill-rule="nonzero"></path>
           <use id="矩形" mask="url(#mask-2)" stroke="#979797" stroke-dasharray="5" stroke-width="2" xlink:href="#path-1">
           </use>
-          <text id="图例" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12" font-weight="normal">
+          <text id="图例" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12"
+            font-weight="normal">
             <tspan x="113" y="17">图例</tspan>
           </text>
           <g id="编组-11" transform="translate(147.055938, 4.000000)">
@@ -773,7 +853,8 @@ export default {
             font-weight="normal">
             <tspan x="500.988" y="69">1100</tspan>
           </text>
-          <text id="客室" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12" font-weight="normal">
+          <text id="客室" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12"
+            font-weight="normal">
             <tspan x="306" y="163">客室</tspan>
           </text>
           <text id="空调室内机" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12"
@@ -784,12 +865,14 @@ export default {
             <tspan x="68.5" y="164">内</tspan>
             <tspan x="68.5" y="181">机</tspan>
           </text>
-          <text id="卫生间" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12" font-weight="normal">
+          <text id="卫生间" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12"
+            font-weight="normal">
             <tspan x="153.5" y="167">卫</tspan>
             <tspan x="153.5" y="184">生</tspan>
             <tspan x="153.5" y="201">间</tspan>
           </text>
-          <text id="通过台" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12" font-weight="normal">
+          <text id="通过台" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12"
+            font-weight="normal">
             <tspan x="14.5" y="124">通</tspan>
             <tspan x="14.5" y="141">过</tspan>
             <tspan x="14.5" y="158">台</tspan>
@@ -812,7 +895,8 @@ export default {
             font-weight="normal">
             <tspan x="52.488" y="226">1100</tspan>
           </text>
-          <text id="800" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12" font-weight="normal">
+          <text id="800" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12"
+            font-weight="normal">
             <tspan x="116.2" y="223">800</tspan>
           </text>
           <text id="1900" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12"
@@ -839,7 +923,8 @@ export default {
             font-weight="normal">
             <tspan x="460.6" y="51">3000</tspan>
           </text>
-          <text id="300" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12" font-weight="normal">
+          <text id="300" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12"
+            font-weight="normal">
             <tspan x="138.2" y="131">300</tspan>
           </text>
           <text id="空调室内机备份" fill="#FFFFFF" font-family="PingFangSC-Regular, PingFang SC" font-size="12"
@@ -903,7 +988,8 @@ export default {
                 transform="translate(292.509056, 3.347450) scale(-1, -1) translate(-292.509056, -3.347450) "></polygon>
               <polygon id="路径备份-5" fill="url(#linearGradient-6)"
                 points="111.319885 191.588832 118.530251 194.936282 111.319885 198.283732 111.319885 196.465528 71.5654349 196.465528 71.5654349 193.409071 111.319885 193.409071"
-                transform="translate(95.047843, 194.936282) scale(-1, -1) translate(-95.047843, -194.936282) "></polygon>
+                transform="translate(95.047843, 194.936282) scale(-1, -1) translate(-95.047843, -194.936282) ">
+              </polygon>
             </g>
             <rect id="矩形备份-42" height="25.1027096" stroke="#3DDEFF" stroke-width="1.67689297"
               transform="translate(429.490186, 518.251512) rotate(-360.000000) translate(-429.490186, -518.251512) "
@@ -975,7 +1061,8 @@ export default {
             <path id="形状"
               d="M74.364641,406.669835 L34.7080615,406.669835 L34.7080615,391.61955 C32.3046238,391.228927 30.6735945,388.968063 31.0650557,386.569769 C31.3698422,384.702488 32.8367764,383.238694 34.7080615,382.934559 C36.9496373,382.591008 38.4876924,380.499236 38.1434037,378.262458 C37.8711836,376.493896 36.4804166,375.106105 34.7080615,374.834468 C32.3046238,374.443845 30.6735945,372.18298 31.0650557,369.784686 C31.3698422,367.917406 32.8367764,366.453611 34.7080615,366.149477 C36.9496373,365.805925 38.4876924,363.714154 38.1434037,361.477376 C37.8711836,359.708814 36.4804166,358.321023 34.7080615,358.049386 C32.3046238,357.658762 30.6735945,355.397898 31.0650557,352.999604 C31.3698422,351.132324 32.8367764,349.668529 34.7080615,349.364395 C36.9496373,349.036674 38.5005534,346.957736 38.1721295,344.720958 C37.9094115,342.931679 36.5011779,341.526459 34.7080615,341.264303 L34.7080615,255.821957 M34.7080615,300.624568 L34.7080615,290.774763 M34.7080615,282.214825 L34.7080615,273.674474 L34.7080615,211.608216 C32.3046238,211.235404 30.6591246,208.988979 31.0327362,206.590685 C31.3272359,204.700228 32.8135496,203.217095 34.7080615,202.923226 C36.9496373,202.595505 38.5005534,200.516567 38.1721295,198.279789 C37.9094115,196.49051 36.5011779,195.08529 34.7080615,194.823134 C32.3046238,194.450322 30.6591246,192.203897 31.0327362,189.805603 C31.3272359,187.915146 32.8135496,186.432013 34.7080615,186.138143 C36.9496373,185.810422 38.5005534,183.731485 38.1721295,181.494706 C37.9094115,179.705427 36.5011779,178.300208 34.7080615,178.038052 C32.3046238,177.66524 30.6591246,175.418815 31.0327362,173.020521 C31.3272359,171.130063 32.8135496,169.646931 34.7080615,169.353061 C36.9496373,169.02534 38.5005534,166.946403 38.1721295,164.709624 C37.9094115,162.920345 36.5011779,161.515125 34.7080615,161.25297 L34.7080615,145.568709 L91.5601704,145.568709"
               stroke="#3DDEFF" stroke-width="2"
-              transform="translate(61.270006, 276.119272) rotate(-360.000000) translate(-61.270006, -276.119272) "></path>
+              transform="translate(61.270006, 276.119272) rotate(-360.000000) translate(-61.270006, -276.119272) ">
+            </path>
             <path id="路径-17备份"
               d="M100.222635,145.568709 L168.94159,145.568709 L168.94159,235.676633 L224.637599,235.676633 C224.985009,233.369258 227.137138,231.780392 229.444514,232.127802 C231.278024,232.403865 232.717282,233.843123 232.993345,235.676633 L232.993345,235.676633 L232.993345,235.676633 C233.310978,237.87505 235.350639,239.399725 237.549056,239.082092 C239.313509,238.827159 240.699581,237.441087 240.954514,235.676633 L240.954514,235.676633 L240.954514,235.676633 C241.301925,233.369258 243.454054,231.780392 245.761429,232.127802 C247.59494,232.403865 249.034198,233.843123 249.310261,235.676633 L249.310261,235.676633 L249.310261,235.676633 C249.627894,237.87505 251.667555,239.399725 253.865971,239.082092 C255.630425,238.827159 257.016497,237.441087 257.27143,235.676633 L257.27143,235.676633 L257.27143,235.676633 C257.61884,233.369258 259.770969,231.780392 262.078345,232.127802 C263.911855,232.403865 265.351113,233.843123 265.627176,235.676633 L265.627176,235.676633 L265.627176,235.676633 C265.944809,237.87505 267.98447,239.399725 270.182886,239.082092 C271.94734,238.827159 273.333412,237.441087 273.588345,235.676633 L273.588345,235.676633 L273.588345,235.676633 L354.592695,235.676633 L354.592695,293.97234 L363.654599,293.97234 L373.485795,284.137326"
               stroke="#3DDEFF" stroke-width="2"
@@ -993,11 +1080,13 @@ export default {
             <g id="编组-5" stroke="#3DDEFF"
               transform="translate(457.910644, 248.781761) rotate(-360.000000) translate(-457.910644, -248.781761) translate(439.460180, 231.486601)">
               <g id="编组-35备份-3">
-                <line id="路径-20" stroke-width="1.11792864" x1="0" x2="23.8522752" y1="6.61345914" y2="6.61345914"></line>
+                <line id="路径-20" stroke-width="1.11792864" x1="0" x2="23.8522752" y1="6.61345914" y2="6.61345914">
+                </line>
                 <ellipse id="椭圆形" cx="29.9863358" cy="6.69490065" rx="5.59133087" ry="5.57697201"
                   stroke-width="2.23585729"></ellipse>
               </g>
-              <line id="路径-20备份-2" stroke-width="1.11792864" x1="0" x2="23.4824083" y1="27.337511" y2="27.337511"></line>
+              <line id="路径-20备份-2" stroke-width="1.11792864" x1="0" x2="23.4824083" y1="27.337511" y2="27.337511">
+              </line>
               <ellipse id="椭圆形备份-6" cx="30.1916678" cy="27.8954194" rx="5.59133087" ry="5.57697201"
                 stroke-width="2.23585729"></ellipse>
               <line id="路径-7" stroke-width="1.11792864" x1="11.7412042" x2="11.7412042" y1="21.2005187" y2="32.3586865">
@@ -1006,13 +1095,15 @@ export default {
             <g id="编组-35备份-4" stroke="#3DDEFF"
               transform="translate(336.025762, 253.802936) scale(-1, 1) rotate(-360.000000) translate(-336.025762, -253.802936) translate(317.575299, 247.108036)">
               <line id="路径-20" stroke-width="1.11792864" x1="0" x2="24.6006182" y1="7.25280904" y2="7.25280904"></line>
-              <ellipse id="椭圆形" cx="30.1916678" cy="6.69490065" rx="5.59133087" ry="5.57697201" stroke-width="2.23585729">
+              <ellipse id="椭圆形" cx="30.1916678" cy="6.69490065" rx="5.59133087" ry="5.57697201"
+                stroke-width="2.23585729">
               </ellipse>
             </g>
             <g id="编组-35备份-5" stroke="#3DDEFF"
               transform="translate(336.025762, 276.677180) scale(-1, 1) rotate(-360.000000) translate(-336.025762, -276.677180) translate(317.575299, 269.424371)">
               <line id="路径-20" stroke-width="1.11792864" x1="0" x2="24.6006182" y1="7.25280904" y2="7.25280904"></line>
-              <ellipse id="椭圆形" cx="30.1916678" cy="7.81071743" rx="5.59133087" ry="5.57697201" stroke-width="2.23585729">
+              <ellipse id="椭圆形" cx="30.1916678" cy="7.81071743" rx="5.59133087" ry="5.57697201"
+                stroke-width="2.23585729">
               </ellipse>
               <line id="路径-8" stroke-width="1.11792864" x1="12.8594141" x2="12.8594141" y1="13.3898013" y2="0"></line>
             </g>
@@ -1092,8 +1183,8 @@ export default {
                 font-weight="normal">
                 <tspan x="14.5772972" y="13.9913928">室外机</tspan>
               </text>
-              <line id="路径-9" stroke="#238AA4" stroke-width="1.11792864" x1="0.574207873" x2="10.6380972" y1="30.0816731"
-                y2="20.0393221"></line>
+              <line id="路径-9" stroke="#238AA4" stroke-width="1.11792864" x1="0.574207873" x2="10.6380972"
+                y1="30.0816731" y2="20.0393221"></line>
             </g>
             <g id="编组-6备份" transform="translate(518.837981, 323.586865)">
               <rect id="矩形" fill="#3DDEFF" height="20.084702" opacity="0.544363839" width="46.9648166" x="10.0789922"
@@ -1102,8 +1193,8 @@ export default {
                 font-weight="normal">
                 <tspan x="14.5772972" y="13.9913928">室内机</tspan>
               </text>
-              <line id="路径-9" stroke="#238AA4" stroke-width="1.11792864" x1="0.574207873" x2="10.6380972" y1="30.0816731"
-                y2="20.0393221"></line>
+              <line id="路径-9" stroke="#238AA4" stroke-width="1.11792864" x1="0.574207873" x2="10.6380972"
+                y1="30.0816731" y2="20.0393221"></line>
             </g>
             <text id="CV" fill="#B3D6F9" font-family="PingFangSC-Regular, PingFang SC" font-size="13.4151437"
               font-weight="normal">
@@ -1133,10 +1224,10 @@ export default {
               font-weight="normal">
               <tspan x="176.680849" y="137.234471">LSV</tspan>
             </text>
-            <text id="SLMC1" fill="#B3D6F9" font-family="PingFangSC-Regular, PingFang SC" font-size="13.4151437"
+            <text id="SLMC2" fill="#B3D6F9" font-family="PingFangSC-Regular, PingFang SC" font-size="13.4151437"
               font-weight="normal"
               transform="translate(108.472578, 176.745757) rotate(-270.000000) translate(-108.472578, -176.745757) ">
-              <tspan x="86.7608763" y="181.245757">SLMC1</tspan>
+              <tspan x="86.7608763" y="181.245757">SLMC2</tspan>
             </text>
             <text id="SLMC2" fill="#B3D6F9" font-family="PingFangSC-Regular, PingFang SC" font-size="13.4151437"
               font-weight="normal"
@@ -1369,7 +1460,8 @@ export default {
                 transform="translate(292.509056, 3.347450) scale(-1, -1) translate(-292.509056, -3.347450) "></polygon>
               <polygon id="路径备份-5" fill="url(#linearGradient-6)"
                 points="111.319885 191.588832 118.530251 194.936282 111.319885 198.283732 111.319885 196.465528 71.5654349 196.465528 71.5654349 193.409071 111.319885 193.409071"
-                transform="translate(95.047843, 194.936282) scale(-1, -1) translate(-95.047843, -194.936282) "></polygon>
+                transform="translate(95.047843, 194.936282) scale(-1, -1) translate(-95.047843, -194.936282) ">
+              </polygon>
             </g>
             <rect id="矩形备份-42" height="25.1027096" stroke="#3DDEFF" stroke-width="1.67689297"
               transform="translate(429.490186, 518.251512) rotate(-360.000000) translate(-429.490186, -518.251512) "
@@ -1441,7 +1533,8 @@ export default {
             <path id="形状"
               d="M74.364641,406.669835 L34.7080615,406.669835 L34.7080615,391.61955 C32.3046238,391.228927 30.6735945,388.968063 31.0650557,386.569769 C31.3698422,384.702488 32.8367764,383.238694 34.7080615,382.934559 C36.9496373,382.591008 38.4876924,380.499236 38.1434037,378.262458 C37.8711836,376.493896 36.4804166,375.106105 34.7080615,374.834468 C32.3046238,374.443845 30.6735945,372.18298 31.0650557,369.784686 C31.3698422,367.917406 32.8367764,366.453611 34.7080615,366.149477 C36.9496373,365.805925 38.4876924,363.714154 38.1434037,361.477376 C37.8711836,359.708814 36.4804166,358.321023 34.7080615,358.049386 C32.3046238,357.658762 30.6735945,355.397898 31.0650557,352.999604 C31.3698422,351.132324 32.8367764,349.668529 34.7080615,349.364395 C36.9496373,349.036674 38.5005534,346.957736 38.1721295,344.720958 C37.9094115,342.931679 36.5011779,341.526459 34.7080615,341.264303 L34.7080615,255.821957 M34.7080615,300.624568 L34.7080615,290.774763 M34.7080615,282.214825 L34.7080615,273.674474 L34.7080615,211.608216 C32.3046238,211.235404 30.6591246,208.988979 31.0327362,206.590685 C31.3272359,204.700228 32.8135496,203.217095 34.7080615,202.923226 C36.9496373,202.595505 38.5005534,200.516567 38.1721295,198.279789 C37.9094115,196.49051 36.5011779,195.08529 34.7080615,194.823134 C32.3046238,194.450322 30.6591246,192.203897 31.0327362,189.805603 C31.3272359,187.915146 32.8135496,186.432013 34.7080615,186.138143 C36.9496373,185.810422 38.5005534,183.731485 38.1721295,181.494706 C37.9094115,179.705427 36.5011779,178.300208 34.7080615,178.038052 C32.3046238,177.66524 30.6591246,175.418815 31.0327362,173.020521 C31.3272359,171.130063 32.8135496,169.646931 34.7080615,169.353061 C36.9496373,169.02534 38.5005534,166.946403 38.1721295,164.709624 C37.9094115,162.920345 36.5011779,161.515125 34.7080615,161.25297 L34.7080615,145.568709 L91.5601704,145.568709"
               stroke="#3DDEFF" stroke-width="2"
-              transform="translate(61.270006, 276.119272) rotate(-360.000000) translate(-61.270006, -276.119272) "></path>
+              transform="translate(61.270006, 276.119272) rotate(-360.000000) translate(-61.270006, -276.119272) ">
+            </path>
             <path id="路径-17备份"
               d="M100.222635,145.568709 L168.94159,145.568709 L168.94159,235.676633 L224.637599,235.676633 C224.985009,233.369258 227.137138,231.780392 229.444514,232.127802 C231.278024,232.403865 232.717282,233.843123 232.993345,235.676633 L232.993345,235.676633 L232.993345,235.676633 C233.310978,237.87505 235.350639,239.399725 237.549056,239.082092 C239.313509,238.827159 240.699581,237.441087 240.954514,235.676633 L240.954514,235.676633 L240.954514,235.676633 C241.301925,233.369258 243.454054,231.780392 245.761429,232.127802 C247.59494,232.403865 249.034198,233.843123 249.310261,235.676633 L249.310261,235.676633 L249.310261,235.676633 C249.627894,237.87505 251.667555,239.399725 253.865971,239.082092 C255.630425,238.827159 257.016497,237.441087 257.27143,235.676633 L257.27143,235.676633 L257.27143,235.676633 C257.61884,233.369258 259.770969,231.780392 262.078345,232.127802 C263.911855,232.403865 265.351113,233.843123 265.627176,235.676633 L265.627176,235.676633 L265.627176,235.676633 C265.944809,237.87505 267.98447,239.399725 270.182886,239.082092 C271.94734,238.827159 273.333412,237.441087 273.588345,235.676633 L273.588345,235.676633 L273.588345,235.676633 L354.592695,235.676633 L354.592695,293.97234 L363.654599,293.97234 L373.485795,284.137326"
               stroke="#3DDEFF" stroke-width="2"
@@ -1459,11 +1552,13 @@ export default {
             <g id="编组-5" stroke="#3DDEFF"
               transform="translate(457.910644, 248.781761) rotate(-360.000000) translate(-457.910644, -248.781761) translate(439.460180, 231.486601)">
               <g id="编组-35备份-3">
-                <line id="路径-20" stroke-width="1.11792864" x1="0" x2="23.8522752" y1="6.61345914" y2="6.61345914"></line>
+                <line id="路径-20" stroke-width="1.11792864" x1="0" x2="23.8522752" y1="6.61345914" y2="6.61345914">
+                </line>
                 <ellipse id="椭圆形" cx="29.9863358" cy="6.69490065" rx="5.59133087" ry="5.57697201"
                   stroke-width="2.23585729"></ellipse>
               </g>
-              <line id="路径-20备份-2" stroke-width="1.11792864" x1="0" x2="23.4824083" y1="27.337511" y2="27.337511"></line>
+              <line id="路径-20备份-2" stroke-width="1.11792864" x1="0" x2="23.4824083" y1="27.337511" y2="27.337511">
+              </line>
               <ellipse id="椭圆形备份-6" cx="30.1916678" cy="27.8954194" rx="5.59133087" ry="5.57697201"
                 stroke-width="2.23585729"></ellipse>
               <line id="路径-7" stroke-width="1.11792864" x1="11.7412042" x2="11.7412042" y1="21.2005187" y2="32.3586865">
@@ -1472,13 +1567,15 @@ export default {
             <g id="编组-35备份-4" stroke="#3DDEFF"
               transform="translate(336.025762, 253.802936) scale(-1, 1) rotate(-360.000000) translate(-336.025762, -253.802936) translate(317.575299, 247.108036)">
               <line id="路径-20" stroke-width="1.11792864" x1="0" x2="24.6006182" y1="7.25280904" y2="7.25280904"></line>
-              <ellipse id="椭圆形" cx="30.1916678" cy="6.69490065" rx="5.59133087" ry="5.57697201" stroke-width="2.23585729">
+              <ellipse id="椭圆形" cx="30.1916678" cy="6.69490065" rx="5.59133087" ry="5.57697201"
+                stroke-width="2.23585729">
               </ellipse>
             </g>
             <g id="编组-35备份-5" stroke="#3DDEFF"
               transform="translate(336.025762, 276.677180) scale(-1, 1) rotate(-360.000000) translate(-336.025762, -276.677180) translate(317.575299, 269.424371)">
               <line id="路径-20" stroke-width="1.11792864" x1="0" x2="24.6006182" y1="7.25280904" y2="7.25280904"></line>
-              <ellipse id="椭圆形" cx="30.1916678" cy="7.81071743" rx="5.59133087" ry="5.57697201" stroke-width="2.23585729">
+              <ellipse id="椭圆形" cx="30.1916678" cy="7.81071743" rx="5.59133087" ry="5.57697201"
+                stroke-width="2.23585729">
               </ellipse>
               <line id="路径-8" stroke-width="1.11792864" x1="12.8594141" x2="12.8594141" y1="13.3898013" y2="0"></line>
             </g>
@@ -1558,8 +1655,8 @@ export default {
                 font-weight="normal">
                 <tspan x="14.5772972" y="13.9913928">室外机</tspan>
               </text>
-              <line id="路径-9" stroke="#238AA4" stroke-width="1.11792864" x1="0.574207873" x2="10.6380972" y1="30.0816731"
-                y2="20.0393221"></line>
+              <line id="路径-9" stroke="#238AA4" stroke-width="1.11792864" x1="0.574207873" x2="10.6380972"
+                y1="30.0816731" y2="20.0393221"></line>
             </g>
             <g id="编组-6备份" transform="translate(518.837981, 323.586865)">
               <rect id="矩形" fill="#3DDEFF" height="20.084702" opacity="0.544363839" width="46.9648166" x="10.0789922"
@@ -1568,8 +1665,8 @@ export default {
                 font-weight="normal">
                 <tspan x="14.5772972" y="13.9913928">室内机</tspan>
               </text>
-              <line id="路径-9" stroke="#238AA4" stroke-width="1.11792864" x1="0.574207873" x2="10.6380972" y1="30.0816731"
-                y2="20.0393221"></line>
+              <line id="路径-9" stroke="#238AA4" stroke-width="1.11792864" x1="0.574207873" x2="10.6380972"
+                y1="30.0816731" y2="20.0393221"></line>
             </g>
             <text id="CV" fill="#B3D6F9" font-family="PingFangSC-Regular, PingFang SC" font-size="13.4151437"
               font-weight="normal">
@@ -1599,10 +1696,10 @@ export default {
               font-weight="normal">
               <tspan x="176.680849" y="137.234471">LSV</tspan>
             </text>
-            <text id="SLMC1" fill="#B3D6F9" font-family="PingFangSC-Regular, PingFang SC" font-size="13.4151437"
+            <text id="SLMC2" fill="#B3D6F9" font-family="PingFangSC-Regular, PingFang SC" font-size="13.4151437"
               font-weight="normal"
               transform="translate(108.472578, 176.745757) rotate(-270.000000) translate(-108.472578, -176.745757) ">
-              <tspan x="86.7608763" y="181.245757">SLMC1</tspan>
+              <tspan x="86.7608763" y="181.245757">SLMC2</tspan>
             </text>
             <text id="SLMC2" fill="#B3D6F9" font-family="PingFangSC-Regular, PingFang SC" font-size="13.4151437"
               font-weight="normal"

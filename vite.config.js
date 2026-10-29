@@ -14,6 +14,14 @@ export default defineConfig({
 				chunkFileNames: '[name].js',
 				assetFileNames: '[name].[ext]',
 			},
-		},
+		}, 
+		// minify: 'terser',
+		// terserOptions: {
+		// 	compress: {
+		// 		drop_: true,
+		// 		drop_debugger: true,
+		// 	},
+		// },
+
 	},
 })

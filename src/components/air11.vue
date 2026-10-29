@@ -26,7 +26,6 @@ import { reactive, toRefs, onMounted, watch,onUnmounted} from "vue";
     //     // 返回
     //     return result
     //   }
-    console.log(1111)
     const datasource = reactive({
         data:props.temp1
     })
@@ -190,7 +189,7 @@ import { reactive, toRefs, onMounted, watch,onUnmounted} from "vue";
     let myChart = null;
     const Handle_data =()=>{
       // datasource.data.push([formatDate(),newv.targettemp,newv.guestroomtemp,newv.newtrendtemp])
-      console.log(datasource.data)
+      // console.log(datasource.data)
       // state.options.dataZoom[0].start =100-(16/state.options.dataset.source.length)*100
     }
     function changeState(){
@@ -203,7 +202,7 @@ import { reactive, toRefs, onMounted, watch,onUnmounted} from "vue";
                 if (timer11) {
                     clearTimeout(timer11)
                     timer11 = null
-                    console.log("清除定时器")
+                    // console.log("清除定时器")
                 }
                 //不然就创建新的定时器
                 timer11 = setTimeout(()=>{

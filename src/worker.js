@@ -34,7 +34,7 @@ async function handleBlobData(blob) {
     const processedData = handleReceivedData(hexString);
     postMessage(processedData);
   } catch (error) {
-    console.error(error);
+    // console.error(error);
   }
 }
 
@@ -63,7 +63,7 @@ function connectWebSocket() {
 
   // 处理 WebSocket 错误事件
   socket.onerror = function (error) {
-    console.error("WebSocket 错误:", error);
+    // console.error("WebSocket 错误:", error);
     // 出错后重新连接
     setTimeout(connectWebSocket, 1000);
   };
@@ -72,7 +72,7 @@ function connectWebSocket() {
 // 处理接收到的数据
 function handleReceivedData(dataAll) {
   // 在这里添加你的数据处理逻辑
-  console.log("处理数据:", dataAll);
+  // console.log("处理数据:", dataAll);
   // 解析Blob进制流
 //   const reader = new FileReader();
   
